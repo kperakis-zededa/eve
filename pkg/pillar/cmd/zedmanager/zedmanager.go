@@ -12,12 +12,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/lf-edge/eve/pkg/pillar/activeapp"
 	"github.com/lf-edge/eve/pkg/pillar/agentbase"
 	"github.com/lf-edge/eve/pkg/pillar/agentlog"
 	"github.com/lf-edge/eve/pkg/pillar/base"
@@ -1109,7 +1108,7 @@ func handleCreate(ctxArg interface{}, key string,
 		config.UUIDandVersion, config.DisplayName)
 
 	// Load the UUIDs of the apps that were previously (before the reboot) in the ACTIVE state.
-	activeAppsUUIDs, err := loadActiveAppInstanceUUIDs()
+	activeAppsUUIDs, err := activeapp.LoadActiveAppInstanceUUIDs(log)
 	var hasPriority bool
 	if err == nil {
 		// Check if the app is in the active list
@@ -1129,31 +1128,6 @@ func handleCreate(ctxArg interface{}, key string,
 		return
 	}
 	handleCreateAppInstanceStatus(ctx, config)
-}
-
-// loadActiveAppInstanceUUIDs reads all JSON files from the specified directory,
-// extracts the UUID from each filename (by removing the ".json" extension),
-// and returns a slice of UUIDs.
-func loadActiveAppInstanceUUIDs() ([]string, error) {
-	// Read all directory entries using os.ReadDir.
-	entries, err := os.ReadDir(types.LocalActiveAppConfigDir)
-	if err != nil {
-		return nil, err
-	}
-
-	var uuids []string
-	// Iterate over all entries found.
-	for _, entry := range entries {
-		// We only care about files (not subdirectories) with a .json extension.
-		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
-			// Remove the .json extension to get the UUID.
-			uuid := strings.TrimSuffix(entry.Name(), ".json")
-			log.Noticef("Found active app instance UUID: %s", uuid)
-			uuids = append(uuids, uuid)
-		}
-	}
-
-	return uuids, nil
 }
 
 func handleCreateAppInstanceStatus(ctx *zedmanagerContext, config types.AppInstanceConfig) {
