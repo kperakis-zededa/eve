@@ -15,6 +15,9 @@ config:
     - /:/hostfs
     - /persist:/persist:rshared,rbind
     - /usr/bin/containerd:/usr/bin/containerd
+    - /usr/bin/zboot:/usr/bin/zboot
+    - /usr/bin/cgpt:/usr/bin/cgpt
+    - /usr/bin/sgdisk:/usr/bin/sgdisk
     - /opt/vendor:/opt/vendor:ro
   net: host
   capabilities:

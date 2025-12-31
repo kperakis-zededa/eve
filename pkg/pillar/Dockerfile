@@ -7,24 +7,24 @@ ARG REL_HASH_LFEDGE_EVE_DOM0_ZTOOLS
 ARG REL_HASH_LFEDGE_EVE_CROSS_COMPILERS
 ARG REL_HASH_LFEDGE_EVE_FSCRYPT
 ARG REL_HASH_LFEDGE_EVE_DNSMASQ
-ARG REL_HASH_LFEDGE_EVE_GPT_TOOLS
+
 
 # Dockerfile to build pillar
 
 # use the same set of packages for simplicity
 ARG BUILD_PKGS_BASE="git gcc linux-headers libc-dev make linux-pam-dev m4 findutils util-linux make patch \
-                     libintl libuuid libtirpc libblkid libcrypto1.1 zlib tar"
+    libintl libuuid libtirpc libblkid libcrypto1.1 zlib tar"
 
 FROM ${REL_HASH_LFEDGE_EVE_UEFI} AS uefi-build
 FROM ${REL_HASH_LFEDGE_EVE_DOM0_ZTOOLS} AS zfs
 RUN mkdir /out
 # copy zfs-related files from dom0-ztools using prepared list of files
 RUN while read -r x; do \
-        if [ -d "$x" ]; then \
-          mkdir -p "/out/$x"; \
-        else \
-          cp -P "$x" "/out/$x"; \
-        fi \
+    if [ -d "$x" ]; then \
+    mkdir -p "/out/$x"; \
+    else \
+    cp -P "$x" "/out/$x"; \
+    fi \
     done < /etc/zfs-files
 
 # hadolint ignore=DL3006
@@ -130,8 +130,8 @@ RUN echo "ARTIFICIAL_LEAK: ${ARTIFICIAL_LEAK}"
 # hadolint ignore=DL4006
 RUN --mount=type=cache,target=/root/.cache/go-build echo "Running go vet" && make HV="$HV" vet && \
     echo "Running go fmt" && ERR="$(find . -name \*.go | grep -v /vendor/ | xargs gofmt -d -e -l -s)" && \
-       if [ -n "$ERR" ] ; then printf 'go fmt Failed - ERR: %s' "$ERR" ; exit 1 ; fi && \
-       make ZARCH=${TARGETARCH} HV="$HV" DEV="$DEV" RSTATS=$RSTATS RSTATS_ENDPOINT=$RSTATS_ENDPOINT RSTATS_TAG=$RSTATS_TAG IMM_PROFILING=$IMM_PROFILING ARTIFICIAL_LEAK=$ARTIFICIAL_LEAK DISTDIR=/final/opt/zededa/bin BUILD_VERSION=${GOPKGVERSION} build
+    if [ -n "$ERR" ] ; then printf 'go fmt Failed - ERR: %s' "$ERR" ; exit 1 ; fi && \
+    make ZARCH=${TARGETARCH} HV="$HV" DEV="$DEV" RSTATS=$RSTATS RSTATS_ENDPOINT=$RSTATS_ENDPOINT RSTATS_TAG=$RSTATS_TAG IMM_PROFILING=$IMM_PROFILING ARTIFICIAL_LEAK=$ARTIFICIAL_LEAK DISTDIR=/final/opt/zededa/bin BUILD_VERSION=${GOPKGVERSION} build
 
 WORKDIR /
 
@@ -144,15 +144,15 @@ WORKDIR /delve-${DELVE_VERSION}
 RUN --mount=type=cache,target=/root/.cache/go-build if [ ${DEV} = "y" ]; then \
     GOFLAGS= CGO_ENABLED=0 go build -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv && \
     cp dlv /final/opt/ ; \
-fi
+    fi
 WORKDIR /
 RUN --mount=type=cache,target=/root/.cache/go-build if [ "${TEST_TOOLS}" = "y" ]; then \
     GOBIN=/final/opt/ GOFLAGS="" go install gotest.tools/gotestsum@v1.7.0; \
-fi
+    fi
 
 FROM ${REL_HASH_LFEDGE_EVE_FSCRYPT} AS fscrypt
 FROM ${REL_HASH_LFEDGE_EVE_DNSMASQ} AS dnsmasq
-FROM ${REL_HASH_LFEDGE_EVE_GPT_TOOLS} AS gpttools
+
 
 # collector collects everything together and then does any processing like stripping binaries.
 # We use this interim "collector" so that we can do processing.
@@ -174,7 +174,7 @@ COPY --from=uefi-build /OVMF_VARS.fd /out/usr/lib/xen/boot/OVMF_VARS.fd
 
 COPY --from=zfs /out /out
 COPY --from=fscrypt /opt/zededa/bin /out/opt/zededa/bin
-COPY --from=gpttools / /out
+
 COPY --from=dnsmasq /usr/sbin/dnsmasq /out/opt/zededa/bin/dnsmasq
 # we use final directory and move the line to the bottom
 # to avoid conflicts and speedup re-builds
@@ -188,14 +188,14 @@ COPY scripts/device-steps.sh \
     scripts/veth.sh \
     scripts/dhcpcd.sh \
     scripts/copy-image-to-qcow.sh \
-  /out/opt/zededa/bin/
+    /out/opt/zededa/bin/
 COPY conf/lisp.config.base /out/var/tmp/zededa/lisp.config.base
 
 COPY patches/* /sys-patches/
 # hadolint ignore=SC1097
 RUN set -e && for patch in /sys-patches/*.patch; do \
-        echo "Applying $patch"; \
-        patch -p0 --no-backup-if-mismatch -r /tmp/deleteme.rej < "$patch"; \
+    echo "Applying $patch"; \
+    patch -p0 --no-backup-if-mismatch -r /tmp/deleteme.rej < "$patch"; \
     done
 
 # And now a few local tweaks
@@ -203,10 +203,10 @@ COPY rootfs/ /out
 
 # We will start experimenting with stripping go binaries on ARM only for now
 RUN if [ "$(uname -m)" = "aarch64" ] ; then                                             \
-       apk add --no-cache findutils binutils file                                      ;\
-       find /out -type f -executable -exec file {} \; | grep 'not stripped' | cut -f1 -d: |\
-       xargs strip                                                                     ;\
-       apk del findutils binutils file                                                 ;\
+    apk add --no-cache findutils binutils file                                      ;\
+    find /out -type f -executable -exec file {} \; | grep 'not stripped' | cut -f1 -d: |\
+    xargs strip                                                                     ;\
+    apk del findutils binutils file                                                 ;\
     fi
 
 FROM scratch
